@@ -9,7 +9,7 @@ def fetch_data(api_url):
         response = requests.get(api_url, headers=headers)
         response.raise_for_status()  # Raises HTTPError for bad responses (4xx, 5xx)
         print("Data fetched successfully.")
-        return pd.DataFrame(response.json())  # Convert JSON response to DataFrame
+        return response.json()  # Return JSON response directly
     except requests.exceptions.RequestException as e:
         print(f"Error fetching data: {e}")
         return None
@@ -17,38 +17,53 @@ def fetch_data(api_url):
 # Function to preprocess the data
 def preprocess_data(data):
     print("Raw data fetched. Preprocessing...")
+    
+    # Check if 'posts' field exists in the data
+    if 'posts' not in data:
+        print("No 'posts' field found in the data.")
+        return None
+    
+    # Extract the posts data from the response
+    posts_data = data['posts']
+    if not posts_data:
+        print("No posts data available.")
+        return None
+    
+    # Convert the posts data into a DataFrame
+    df = pd.DataFrame(posts_data)
+
     print("Available columns in the dataset:")
-    print(data.columns)
+    print(df.columns)
 
     # List of required columns, checking if they exist
     required_columns = ['createdAt', 'title', 'category']
-    missing_columns = [col for col in required_columns if col not in data.columns]
+    missing_columns = [col for col in required_columns if col not in df.columns]
     
     if missing_columns:
         print(f"Missing columns: {missing_columns}")
         return None
     
     # Check for variations in 'createdAt' column name (e.g., 'created_at')
-    if 'createdAt' not in data.columns:
-        if 'created_at' in data.columns:
-            data = data.rename(columns={'created_at': 'createdAt'})
+    if 'createdAt' not in df.columns:
+        if 'created_at' in df.columns:
+            df = df.rename(columns={'created_at': 'createdAt'})
         else:
             print("Missing 'createdAt' column.")
             return None
 
     # Handle datetime parsing with error handling
     try:
-        data['createdAt'] = pd.to_datetime(data['createdAt'], errors='coerce')  # 'coerce' turns invalid dates into NaT
-        data = data.dropna(subset=['createdAt'])  # Drop rows where 'createdAt' is NaT (invalid)
+        df['createdAt'] = pd.to_datetime(df['createdAt'], errors='coerce')  # 'coerce' turns invalid dates into NaT
+        df = df.dropna(subset=['createdAt'])  # Drop rows where 'createdAt' is NaT (invalid)
     except Exception as e:
         print(f"Error parsing 'createdAt' column: {e}")
         return None
     
     # Select only the necessary columns and drop rows with missing data in them
-    data = data[['createdAt', 'title', 'category']]
+    df = df[['createdAt', 'title', 'category']]
 
     print("Data preprocessing completed successfully.")
-    return data
+    return df
 
 # Function to save the processed data to CSV
 def save_to_csv(data, filename='processed_data.csv'):
@@ -64,7 +79,7 @@ def main():
     api_url = "https://api.socialverseapp.com/posts/summary/get?page=1&page_size=1000"
     raw_data = fetch_data(api_url)
     
-    if raw_data is not None and not raw_data.empty:
+    if raw_data is not None and raw_data:
         processed_data = preprocess_data(raw_data)
         
         if processed_data is not None:
