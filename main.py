@@ -16,30 +16,28 @@ def fetch_data(api_url):
 # Preprocess the data
 def preprocess_data(data):
     print("Raw data fetched. Preprocessing...")
-    print(f"Available columns: {list(data.columns)}")
+    print("Available columns in the dataset:")
+    print(data.columns)
 
-    # Check for required columns dynamically
-    potential_columns = {'createdAt': ['created_at', 'createdAt', 'timestamp'],  # Include possible variations
-                         'title': ['title', 'video_title'],
-                         'category': ['category', 'video_category']}
+    # Map column names to standardized versions
+    column_mapping = {
+        'created_at': 'createdAt',  # Map created_at to createdAt
+        'title': 'title',
+        'category': 'category'
+    }
 
-    column_mapping = {}
-    for key, variations in potential_columns.items():
-        for var in variations:
-            if var in data.columns:
-                column_mapping[key] = var
-                break
-
-    # Check for missing columns
-    missing_columns = [key for key in potential_columns if key not in column_mapping]
-    if missing_columns:
-        print(f"Missing required columns: {missing_columns}")
+    # Check for required columns
+    required_columns = ['createdAt', 'title', 'category']
+    missing_columns = [key for key in required_columns if key not in column_mapping.values()]
+    
+    if any(col not in data.columns for col in column_mapping.keys()):
+        print(f"Missing columns: {missing_columns}")
         return None
 
-    # Standardize column names
+    # Rename and select required columns
     data = data.rename(columns=column_mapping)
     data = data[['createdAt', 'title', 'category']]  # Select only required columns
-    data['createdAt'] = pd.to_datetime(data['createdAt'])  # Convert to datetime format
+    data['createdAt'] = pd.to_datetime(data['createdAt'])  # Convert to datetime
     print("Data preprocessing completed successfully.")
     return data
 
