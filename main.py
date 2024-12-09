@@ -19,16 +19,33 @@ def fetch_data():
 
 # Function to preprocess data
 def preprocess_data(data):
-    # Check if the required columns are present
-    required_columns = ['createdAt', 'title', 'category']
+    # Print the columns to verify their names
+    print("Available columns in the dataset:")
+    print(data.columns)
+
+    # Adjust these column names based on the actual dataset structure
+    required_columns = ['createdAt', 'title', 'category']  # Default expected columns
+
+    # Handle column name differences (e.g., API might return different keys)
+    column_mapping = {
+        'createdAt': 'creation_date',  # Example adjustment
+        'title': 'post_title',         # Example adjustment
+        'category': 'post_category'   # Example adjustment
+    }
+
+    # Map column names based on availability
+    for key, value in column_mapping.items():
+        if value in data.columns:
+            required_columns[required_columns.index(key)] = value
+
     missing_columns = [col for col in required_columns if col not in data.columns]
-    
     if missing_columns:
         print(f"Missing columns: {missing_columns}")
         return None
 
-    # Select required columns and perform any preprocessing
     processed_data = data[required_columns]
+    # Rename columns to a standardized format
+    processed_data.columns = ['createdAt', 'title', 'category']
     processed_data['createdAt'] = pd.to_datetime(processed_data['createdAt'])  # Convert to datetime
     return processed_data
 
@@ -42,12 +59,10 @@ def main():
         return
 
     print("Raw data fetched. Preprocessing...")
-    print(raw_data.head())  # Debugging: Print the structure of raw data
-
     processed_data = preprocess_data(raw_data)
 
     if processed_data is None:
-        print("Data preprocessing failed due to missing columns.")
+        print("Data preprocessing failed due to missing or mismatched columns.")
         return
 
     print("Preprocessed data:")
