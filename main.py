@@ -35,33 +35,17 @@ def preprocess_data(data):
     print("Available columns in the dataset:")
     print(df.columns)  # Log the columns to see the available data
 
-    # Check for common fields in the posts data
-    common_columns = ['createdAt', 'title', 'category', 'created_at', 'name', 'slug']
-    columns_found = []
-
-    # Try to extract commonly expected columns
-    for col in common_columns:
-        if col in df.columns:
-            columns_found.append(col)
+    # Dynamically handle missing or unknown columns by just working with the available ones
+    # We'll try to use the first few columns we find as an example.
+    columns_found = df.columns.tolist()  # Get all available columns
 
     if not columns_found:
-        print(f"Warning: None of the common columns ({common_columns}) were found.")
+        print(f"Warning: No columns were found.")
         return df  # Return whatever data we can, even if not fully processed
 
-    # If we found some columns, let's create a cleaned DataFrame
-    cleaned_df = df[columns_found]
+    # Process columns that are available, in case there are missing or mismatched columns
+    cleaned_df = df[columns_found]  # Just work with whatever columns we have
 
-    # Handle datetime parsing with error handling
-    try:
-        if 'createdAt' in cleaned_df.columns:
-            cleaned_df['createdAt'] = pd.to_datetime(cleaned_df['createdAt'], errors='coerce')
-            cleaned_df = cleaned_df.dropna(subset=['createdAt'])  # Drop rows with invalid 'createdAt'
-        elif 'created_at' in cleaned_df.columns:
-            cleaned_df['createdAt'] = pd.to_datetime(cleaned_df['created_at'], errors='coerce')
-            cleaned_df = cleaned_df.dropna(subset=['createdAt'])  # Drop rows with invalid 'createdAt'
-    except Exception as e:
-        print(f"Error parsing 'createdAt' column: {e}")
-    
     print("Data preprocessing completed.")
     return cleaned_df
 
