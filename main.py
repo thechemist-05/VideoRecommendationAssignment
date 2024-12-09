@@ -19,25 +19,38 @@ def preprocess_data(data):
     print("Available columns in the dataset:")
     print(data.columns)
 
-    # Map column names to standardized versions
-    column_mapping = {
-        'created_at': 'createdAt',  # Map created_at to createdAt
-        'title': 'title',
-        'category': 'category'
-    }
+    # Handle possible variations in column names
+    possible_column_names = ['createdAt', 'created_at']
 
-    # Check for required columns
-    required_columns = ['createdAt', 'title', 'category']
-    missing_columns = [key for key in required_columns if key not in column_mapping.values()]
+    # Check for the existence of the column 'createdAt' or 'created_at'
+    found_column = None
+    for col in possible_column_names:
+        if col in data.columns:
+            found_column = col
+            break
     
-    if any(col not in data.columns for col in column_mapping.keys()):
+    if not found_column:
+        print(f"Missing columns: {possible_column_names}")
+        return None
+    
+    # Rename column to 'createdAt' for consistency
+    data = data.rename(columns={found_column: 'createdAt'})
+
+    # Ensure required columns are present
+    required_columns = ['createdAt', 'title', 'category']
+    missing_columns = [col for col in required_columns if col not in data.columns]
+    
+    if missing_columns:
         print(f"Missing columns: {missing_columns}")
         return None
 
-    # Rename and select required columns
-    data = data.rename(columns=column_mapping)
-    data = data[['createdAt', 'title', 'category']]  # Select only required columns
-    data['createdAt'] = pd.to_datetime(data['createdAt'])  # Convert to datetime
+    # Select only required columns and ensure 'createdAt' is in datetime format
+    data = data[['createdAt', 'title', 'category']]  
+    data['createdAt'] = pd.to_datetime(data['createdAt'], errors='coerce')  # Handle any invalid dates
+
+    # Drop rows where 'createdAt' is NaT (Not a Time)
+    data = data.dropna(subset=['createdAt'])
+
     print("Data preprocessing completed successfully.")
     return data
 
