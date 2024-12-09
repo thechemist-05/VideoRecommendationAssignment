@@ -33,37 +33,37 @@ def preprocess_data(data):
     df = pd.DataFrame(posts_data)
 
     print("Available columns in the dataset:")
-    print(df.columns)
+    print(df.columns)  # Log the columns to see the available data
 
-    # List of required columns, checking if they exist
-    required_columns = ['createdAt', 'title', 'category']
-    missing_columns = [col for col in required_columns if col not in df.columns]
-    
-    if missing_columns:
-        print(f"Missing columns: {missing_columns}")
-        return None
-    
-    # Check for variations in 'createdAt' column name (e.g., 'created_at')
-    if 'createdAt' not in df.columns:
-        if 'created_at' in df.columns:
-            df = df.rename(columns={'created_at': 'createdAt'})
-        else:
-            print("Missing 'createdAt' column.")
-            return None
+    # Check for common fields in the posts data
+    common_columns = ['createdAt', 'title', 'category', 'created_at', 'name', 'slug']
+    columns_found = []
+
+    # Try to extract commonly expected columns
+    for col in common_columns:
+        if col in df.columns:
+            columns_found.append(col)
+
+    if not columns_found:
+        print(f"Warning: None of the common columns ({common_columns}) were found.")
+        return df  # Return whatever data we can, even if not fully processed
+
+    # If we found some columns, let's create a cleaned DataFrame
+    cleaned_df = df[columns_found]
 
     # Handle datetime parsing with error handling
     try:
-        df['createdAt'] = pd.to_datetime(df['createdAt'], errors='coerce')  # 'coerce' turns invalid dates into NaT
-        df = df.dropna(subset=['createdAt'])  # Drop rows where 'createdAt' is NaT (invalid)
+        if 'createdAt' in cleaned_df.columns:
+            cleaned_df['createdAt'] = pd.to_datetime(cleaned_df['createdAt'], errors='coerce')
+            cleaned_df = cleaned_df.dropna(subset=['createdAt'])  # Drop rows with invalid 'createdAt'
+        elif 'created_at' in cleaned_df.columns:
+            cleaned_df['createdAt'] = pd.to_datetime(cleaned_df['created_at'], errors='coerce')
+            cleaned_df = cleaned_df.dropna(subset=['createdAt'])  # Drop rows with invalid 'createdAt'
     except Exception as e:
         print(f"Error parsing 'createdAt' column: {e}")
-        return None
     
-    # Select only the necessary columns and drop rows with missing data in them
-    df = df[['createdAt', 'title', 'category']]
-
-    print("Data preprocessing completed successfully.")
-    return df
+    print("Data preprocessing completed.")
+    return cleaned_df
 
 # Function to save the processed data to CSV
 def save_to_csv(data, filename='processed_data.csv'):
