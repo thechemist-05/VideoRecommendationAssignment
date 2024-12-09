@@ -41,3 +41,60 @@ if __name__ == "__main__":
         print(processed_data)
     else:
         print("Failed to fetch data.")
+        
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+
+# Recommendation Algorithm
+def recommend_videos(user_liked_videos, all_videos, top_n=5):
+    """
+    Recommend videos based on content similarity.
+    
+    Args:
+    - user_liked_videos (DataFrame): Videos the user interacted with.
+    - all_videos (DataFrame): All available videos.
+    - top_n (int): Number of recommendations to return.
+    
+    Returns:
+    - recommendations (DataFrame): Top N recommended videos.
+    """
+    # Combine video titles and categories for content analysis
+    all_videos['content'] = all_videos['title'] + " " + all_videos['category']
+    user_liked_videos['content'] = user_liked_videos['title'] + " " + user_liked_videos['category']
+
+    # TF-IDF Vectorization
+    tfidf = TfidfVectorizer(stop_words='english')
+    tfidf_matrix = tfidf.fit_transform(all_videos['content'])
+
+    # Compute similarity scores between user-liked videos and all videos
+    similarity_scores = cosine_similarity(tfidf_matrix, tfidf_matrix)
+
+    # Identify indices of videos liked by the user
+    liked_indices = user_liked_videos.index.tolist()
+
+    # Aggregate similarity scores for videos the user liked
+    scores = similarity_scores[liked_indices].sum(axis=0)
+
+    # Sort videos by score and exclude already-liked videos
+    all_videos['similarity'] = scores
+    recommendations = all_videos[~all_videos.index.isin(liked_indices)]
+    recommendations = recommendations.sort_values('similarity', ascending=False).head(top_n)
+
+    return recommendations[['id', 'title', 'category', 'similarity']]
+
+# Example Execution
+if __name__ == "__main__":
+    raw_data = fetch_data()
+    if raw_data:
+        # Preprocess data
+        all_videos = preprocess_data(raw_data)
+        
+        # Simulating user-liked videos (can be replaced with actual user data)
+        user_liked_videos = all_videos.sample(2)  # Randomly select 2 videos as liked
+        print("\nUser Liked Videos:")
+        print(user_liked_videos)
+
+        # Get recommendations
+        recommendations = recommend_videos(user_liked_videos, all_videos)
+        print("\nRecommended Videos:")
+        print(recommendations)
